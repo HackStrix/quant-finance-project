@@ -19,13 +19,115 @@ min_max_norm <- function(x) {
   }
 }
 
+data_ml <- data_ml %>%
+  select(-c(R3M_Usd, R6M_Usd, R12M_Usd))
+
+add_vix <- function(data, features_short){
+
+  getSymbols.FRED("VIXCLS", env = ".GlobalEnv", return.class = "xts")
+
+  vix <- fortify(VIXCLS)
+  colnames(vix) <- c("date", "vix")
+
+  vix <- vix %>% # Take extraction and...
+          full_join(data %>% dplyr::select(date), by = "date") %>% # merge data
+          mutate(vix = na.locf(vix)) # Replace NA by previous
+  vix <- vix[!duplicated(vix),] # Remove duplicates
+
+  # data_cond <- data %>%                        
+  #             dplyr::select(c("stock_id", "date", features_short, "R1M_Usd")) 
+
+  data_cond <- data
+
+  names_vix <- paste0(features_short, "_vix")    
+
+  feat_vix <- data_cond %>%      
+                    dplyr::select(all_of(features_short)) 
+  vix <- data %>%       
+                dplyr::select(date) %>% 
+                left_join(vix, by = "date") 
+
+  feat_vix <- feat_vix *      
+                      matrix(vix$vix,       
+                      length(vix$vix),       
+                      length(features_short))                     
+  colnames(feat_vix) <- names_vix  
+
+
+  data_cond <- bind_cols(data_cond, feat_vix)   
+
+  return(data_cond)
+
+}
+
+
+add_credit_spread <- function(data, features_short){
+
+  getSymbols.FRED("BAMLC0A0CM",     
+  env = ".GlobalEnv", 
+  return.class = "xts")
+  head(BAMLC0A0CM)
+
+  cred_spread <- fortify(BAMLC0A0CM)     
+  colnames(cred_spread) <- c("date", "spread")    
+  cred_spread <- cred_spread %>%      
+  full_join(data %>% dplyr::select(date), by = "date") %>%   
+  mutate(spread = na.locf(spread))
+  cred_spread <- cred_spread[!duplicated(cred_spread),]
+
+
+  # data_cond <- data %>%                        
+  #             dplyr::select(c("stock_id", "date", features_short, "R1M_Usd")) 
+
+  data_cond <- data
+
+  names_cred_spread <- paste0(features_short, "_cred_spread")    
+
+  feat_cred_spread <- data_cond %>%      
+                    dplyr::select(all_of(features_short)) 
+  cred_spread <- data %>%       
+                dplyr::select(date) %>% 
+                left_join(cred_spread, by = "date") 
+
+  feat_cred_spread <- feat_cred_spread *      
+                      matrix(cred_spread$spread,       
+                      length(cred_spread$spread),       
+                      length(features_short))                     
+  colnames(feat_cred_spread) <- names_cred_spread  
+
+
+  data_cond <- bind_cols(data_cond, feat_cred_spread)   
+
+  return(data_cond)
+
+}
+
+# if you remove, make sure to remove labels from the data_ml sepreately
+
+features_short <- select(data_ml, -c(stock_id, date, R1M_Usd)) %>% colnames()
+
+
+data_ml <- add_credit_spread(data_ml, features_short)
+data_ml <- add_vix(data_ml, features_short)
+
+
+
 # Stock IDs and filtering
 stock_ids <- levels(as.factor(data_ml$stock_id))
 stock_days <- data_ml %>% group_by(stock_id) %>% summarize(nb = n())
 stock_ids_short <- stock_ids[which(stock_days$nb == max(stock_days$nb))]
 
+
+
+
+
+
+
 # Feature selection
 features_short <- setdiff(colnames(data_ml), c("stock_id", "date", "R1M_Usd"))
+print(paste("Number of features:", length(features_short)))
+print(features_short)
+
 data_short <- data_ml %>%
   filter(stock_id %in% stock_ids_short) %>%
   select(c("stock_id", "date", all_of(features_short), "R1M_Usd"))
@@ -71,7 +173,7 @@ tryCatch({
   history <- autoencoder_model %>% fit(
     x = as.matrix(data_short_normalized),
     y = as.matrix(data_short_normalized),
-    epochs = 25,
+    epochs = 10,
     batch_size = 32,
     verbose = 1
   )
@@ -153,7 +255,7 @@ for (num_clusters in fibonacci_numbers) {
     bind_rows()
 
   final_data$cluster <- as.numeric(unlist(final_data$cluster))
-  print(head(final_data))
+  print(head(final_data%>% select(date, stock_id, cluster)))
 
 
   #TODO Create a portfolio using the cluster for each date, then backtest the portfolio
