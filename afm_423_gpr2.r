@@ -347,6 +347,9 @@ for (num_clusters in 1:max_clusters) {
     )
     
     print(met)
+
     metrics_list[[cluster_id]] <- met
   }
+  
+  results[[num_clusters]] <- metrics_list
 }
