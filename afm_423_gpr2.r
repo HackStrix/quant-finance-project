@@ -139,6 +139,15 @@ perf_met_multi <- function(portf_returns, weights, asset_returns, t_oos, strat_n
   return(met)
 }
 
+portf_compo <- function(train_data, test_data){
+  N <- test_data$stock_id %>%             # Test data dictates allocation
+    factor() %>% nlevels()
+  w <- 1/N                                # EW portfolio
+  w$weights <- rep(w,N)
+  w$names <- unique(test_data$stock_id)   # Asset names
+  return(w)
+}
+
 features_short <- select(data_ml, -c(stock_id, date, R1M_Usd)) %>% colnames()
 
 data_ml <- add_credit_spread(data_ml, features_short)
@@ -278,15 +287,6 @@ for (num_clusters in 1:max_clusters) {
   nb_port <- 1                                                # Nb of portfolios/stragegies
   portf_weights_list <- list()
   portf_returns_list <- list()
-
-  portf_compo <- function(train_data, test_data){
-    N <- test_data$stock_id %>%             # Test data dictates allocation
-      factor() %>% nlevels()
-    w <- 1/N                                # EW portfolio
-    w$weights <- rep(w,N)
-    w$names <- unique(test_data$stock_id)   # Asset names
-    return(w)
-  }
   
   m_offset <- 12                                          # Offset in months for buffer period
   train_size <- 5                                         # Size of training set in years
