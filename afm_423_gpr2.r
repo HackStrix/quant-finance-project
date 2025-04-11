@@ -34,27 +34,27 @@ add_vix <- function(data, features_short){
           mutate(vix = na.locf(vix)) # Replace NA by previous
   vix <- vix[!duplicated(vix),] # Remove duplicates
 
-  # data_cond <- data %>%                        
-  #             dplyr::select(c("stock_id", "date", features_short, "R1M_Usd")) 
+  # data_cond <- data %>%
+  #             dplyr::select(c("stock_id", "date", features_short, "R1M_Usd"))
 
   data_cond <- data
 
-  names_vix <- paste0(features_short, "_vix")    
+  names_vix <- paste0(features_short, "_vix")
 
-  feat_vix <- data_cond %>%      
-                    dplyr::select(all_of(features_short)) 
-  vix <- data %>%       
-                dplyr::select(date) %>% 
-                left_join(vix, by = "date") 
+  feat_vix <- data_cond %>%
+                    dplyr::select(all_of(features_short))
+  vix <- data %>%
+                dplyr::select(date) %>%
+                left_join(vix, by = "date")
 
-  feat_vix <- feat_vix *      
-                      matrix(vix$vix,       
-                      length(vix$vix),       
-                      length(features_short))                     
-  colnames(feat_vix) <- names_vix  
+  feat_vix <- feat_vix *
+                      matrix(vix$vix,
+                      length(vix$vix),
+                      length(features_short))
+  colnames(feat_vix) <- names_vix
 
 
-  data_cond <- bind_cols(data_cond, feat_vix)   
+  data_cond <- bind_cols(data_cond, feat_vix)
 
   return(data_cond)
 
@@ -62,40 +62,40 @@ add_vix <- function(data, features_short){
 
 add_credit_spread <- function(data, features_short){
 
-  getSymbols.FRED("BAMLC0A0CM",     
-  env = ".GlobalEnv", 
+  getSymbols.FRED("BAMLC0A0CM",
+  env = ".GlobalEnv",
   return.class = "xts")
   head(BAMLC0A0CM)
 
-  cred_spread <- fortify(BAMLC0A0CM)     
-  colnames(cred_spread) <- c("date", "spread")    
-  cred_spread <- cred_spread %>%      
-  full_join(data %>% dplyr::select(date), by = "date") %>%   
+  cred_spread <- fortify(BAMLC0A0CM)
+  colnames(cred_spread) <- c("date", "spread")
+  cred_spread <- cred_spread %>%
+  full_join(data %>% dplyr::select(date), by = "date") %>%
   mutate(spread = na.locf(spread))
   cred_spread <- cred_spread[!duplicated(cred_spread),]
 
 
-  # data_cond <- data %>%                        
-  #             dplyr::select(c("stock_id", "date", features_short, "R1M_Usd")) 
+  # data_cond <- data %>%
+  #             dplyr::select(c("stock_id", "date", features_short, "R1M_Usd"))
 
   data_cond <- data
 
-  names_cred_spread <- paste0(features_short, "_cred_spread")    
+  names_cred_spread <- paste0(features_short, "_cred_spread")
 
-  feat_cred_spread <- data_cond %>%      
-                    dplyr::select(all_of(features_short)) 
-  cred_spread <- data %>%       
-                dplyr::select(date) %>% 
-                left_join(cred_spread, by = "date") 
+  feat_cred_spread <- data_cond %>%
+                    dplyr::select(all_of(features_short))
+  cred_spread <- data %>%
+                dplyr::select(date) %>%
+                left_join(cred_spread, by = "date")
 
-  feat_cred_spread <- feat_cred_spread *      
-                      matrix(cred_spread$spread,       
-                      length(cred_spread$spread),       
-                      length(features_short))                     
-  colnames(feat_cred_spread) <- names_cred_spread  
+  feat_cred_spread <- feat_cred_spread *
+                      matrix(cred_spread$spread,
+                      length(cred_spread$spread),
+                      length(features_short))
+  colnames(feat_cred_spread) <- names_cred_spread
 
 
-  data_cond <- bind_cols(data_cond, feat_cred_spread)   
+  data_cond <- bind_cols(data_cond, feat_cred_spread)
 
   return(data_cond)
 
@@ -112,7 +112,7 @@ turnover <- function(weights, asset_returns, t_oos){
 }
 
 perf_met <- function(portf_returns, weights, asset_returns, t_oos){
-  avg_ret <- mean(portf_returns, na.rm = T)                     # Arithmetic mean 
+  avg_ret <- mean(portf_returns, na.rm = T)                     # Arithmetic mean
   vol <- sd(portf_returns, na.rm = T)                           # Volatility
   Sharpe_ratio <- avg_ret / vol                                 # Sharpe ratio
   VaR_5 <- quantile(portf_returns, 0.05)                        # Value-at-risk
@@ -251,7 +251,7 @@ results <- list()
 
 for (num_clusters in 1:max_clusters) {
   if (num_clusters > nrow(reduced_data)) break  # Skip if clusters exceed data points
-  
+
   print(paste("Clustering with", num_clusters, "clusters"))
 
   # Perform clustering for each date
@@ -274,30 +274,30 @@ for (num_clusters in 1:max_clusters) {
   returns <- final_data %>%                           # Compute returns, in matrix format, in 3 steps:
     filter(stock_id %in% stock_ids_short) %>%    # 1. Filtering the data
     dplyr::select(date, stock_id, R1M_Usd) %>%   # 2. Keep returns along with dates & firm names
-    spread(key = stock_id, value = R1M_Usd)      # 3. Put in matrix shape 
+    spread(key = stock_id, value = R1M_Usd)      # 3. Put in matrix shape
   sep_oos <- as.Date("2007-01-01")                            # Starting point for backtest
   ticks <- final_data$stock_id %>%                               # List of all asset ids
     as.factor() %>%
     levels()
   N <- length(ticks)                                          # Max number of assets
-  t_oos <- returns$date[returns$date > sep_oos] %>%           # Out-of-sample dates 
+  t_oos <- returns$date[returns$date > sep_oos] %>%           # Out-of-sample dates
     unique() %>%                                            # Remove duplicates
     as.Date(origin = "1970-01-01")                          # Transform in date format
   Tt <- length(t_oos)                                         # Nb of dates, avoid T = TRUE
   nb_port <- 1                                                # Nb of portfolios/stragegies
   portf_weights_list <- list()
   portf_returns_list <- list()
-  
+
   m_offset <- 12                                          # Offset in months for buffer period
   train_size <- 5                                         # Size of training set in years
-  
+
   for (cluster_id in 1:num_clusters){
     cluster_data <- final_data %>% filter(cluster == cluster_id)  # Filter for that cluster_id
-    
+
     # Recalculate since number of stocks may vary
     ticks <- unique(cluster_data$stock_id)
     N <- length(ticks)
-    
+
     # Initialize per-cluster storage
     portf_weights <- array(0, dim = c(Tt, nb_port, N))          # Initialize portfolio weights
     portf_returns <- matrix(0, nrow = Tt, ncol = nb_port)       # Initialize portfolio returns
@@ -307,7 +307,7 @@ for (num_clusters in 1:max_clusters) {
 
       train_data <- cluster_data %>% filter(date < t_oos[t] - m_offset * 30,   # Roll window w. buffer
                                        date > t_oos[t] - m_offset * 30 - 365 * train_size)
-      
+
       test_data <- cluster_data %>% filter(date == t_oos[t])   # Test sample
       realized_returns <- test_data$R1M_Usd
 
@@ -322,19 +322,19 @@ for (num_clusters in 1:max_clusters) {
     portf_weights_list[[as.character(cluster_id)]] <- portf_weights
     portf_returns_list[[as.character(cluster_id)]] <- portf_returns
   }
-  
+
   asset_returns <- data_ml %>%                          # Compute return matrix: start from data
-    dplyr::select(date, stock_id, R1M_Usd) %>%        # Keep 3 attributes 
+    dplyr::select(date, stock_id, R1M_Usd) %>%        # Keep 3 attributes
     spread(key = stock_id, value = R1M_Usd)           # Shape in matrix format
   asset_returns[is.na(asset_returns)] <- 0              # Zero returns for missing points
-  
+
   metrics_list <- list()
-  
+
   for (cluster_id in 1:num_clusters) {
     print(paste(" Metrics for Cluster", cluster_id, ":"))
-    
+
     current_assets <- as.character(unique(final_data$stock_id[final_data$cluster == cluster_id]))
-    
+
     asset_returns_cluster <- asset_returns %>%
       dplyr::select(date, all_of(current_assets))
 
@@ -345,11 +345,11 @@ for (num_clusters in 1:max_clusters) {
       t_oos = t_oos,
       strat_name = c("EW")  # You can customize if you have multiple strategies
     )
-    
+
     print(met)
 
     metrics_list[[cluster_id]] <- met
   }
-  
+
   results[[num_clusters]] <- metrics_list
 }
