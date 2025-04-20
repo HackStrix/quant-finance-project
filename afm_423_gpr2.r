@@ -275,7 +275,7 @@ for (num_clusters in 1:max_clusters) {
     filter(stock_id %in% stock_ids_short) %>%    # 1. Filtering the data
     dplyr::select(date, stock_id, R1M_Usd) %>%   # 2. Keep returns along with dates & firm names
     spread(key = stock_id, value = R1M_Usd)      # 3. Put in matrix shape
-  sep_oos <- as.Date("2007-01-01")                            # Starting point for backtest
+  sep_oos <- as.Date("2010-01-01")                            # Starting point for backtest
   ticks <- final_data$stock_id %>%                               # List of all asset ids
     as.factor() %>%
     levels()
