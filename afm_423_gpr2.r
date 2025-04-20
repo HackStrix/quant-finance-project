@@ -1,11 +1,17 @@
-if(!require(quantmod)){install.packages("quantmod")}
-if(!require(tidyverse)){install.packages("tidyverse")}
+if(!require(cowplot)){install.packages("cowplot")}
+if(!require(dplyr)){install.packages("dplyr")}
 if(!require(keras)){install.packages("keras")}
+if(!require(lubridate)){install.packages("lubridate")}
+if(!require(quantmod)){install.packages("quantmod")}
 if(!require(tensorflow)){install.packages("tensorflow")}
+if(!require(tidyverse)){install.packages("tidyverse")}
+
+library(cowplot)
 library(dplyr)
 library(keras)
-library(tensorflow)
+library(lubridate)
 library(quantmod)
+library(tensorflow)
 library(tidyverse)
 
 load("data_ml.RData")
@@ -349,6 +355,22 @@ for (num_clusters in 1:max_clusters) {
     print(met)
 
     metrics_list[[cluster_id]] <- met
+    
+    g1 <- tibble(date = t_oos,
+                 ew_portfolio = cumprod(1+portf_returns_list[[cluster_id]][,1])) %>%
+      gather(key = strat, value = value, -date) %>%
+      ggplot(aes(x = date, y = value, color = strat)) + geom_line() +theme_grey() +
+      ggtitle(paste("Cluster ID:", cluster_id, ", Number of Cluster:", num_clusters))
+    
+    g2 <- tibble(year = lubridate::year(t_oos),
+                 ew_portfolio = portf_returns_list[[cluster_id]][,1]) %>%
+      gather(key = strat, value = value, -year) %>%
+      group_by(year, strat) %>%
+      summarise(avg_return = mean(value)) %>%
+      ggplot(aes(x = year, y = avg_return, fill = strat)) + 
+      geom_col(position = "dodge") + theme_grey() +
+      ggtitle(paste("Cluster ID:", cluster_id, ", Number of Cluster:", num_clusters))
+    print(plot_grid(g1,g2, nrow = 2))
   }
 
   results[[num_clusters]] <- metrics_list
