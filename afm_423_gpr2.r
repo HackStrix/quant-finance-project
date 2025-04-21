@@ -154,6 +154,8 @@ portf_compo <- function(train_data, test_data){
   return(w)
 }
 
+features_short <- select(data_ml, -c(stock_id, date, R1M_Usd)) %>% colnames()
+
 data_ml <- add_credit_spread(data_ml, features_short)
 data_ml <- add_vix(data_ml, features_short)
 
